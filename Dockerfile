@@ -1,14 +1,11 @@
-FROM golang:1.10-alpine as builder
+FROM golang:1.11-alpine as builder
 
 # Setup
 RUN mkdir /app
 WORKDIR /app
 
 # Add libraries
-RUN apk add --no-cache git && \
-  go get "github.com/namsral/flag" && \
-  go get "github.com/op/go-logging" && \
-  apk del git
+RUN apk add --no-cache git
 
 # Copy & build
 ADD . /app/

@@ -13,7 +13,7 @@ import (
 )
 
 // Vars
-var fw *ForwardAuth;
+var fw *ForwardAuth
 var log = logging.MustGetLogger("traefik-forward-auth")
 
 // Primary handler
@@ -45,7 +45,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
     // Set the CSRF cookie
     http.SetCookie(w, fw.MakeCSRFCookie(r, nonce))
-    log.Debug("Set CSRF cookie and redirecting to google login")
+    log.Debug("Set CSRF cookie and redirecting to github login")
 
     // Forward them on
     http.Redirect(w, r, fw.GetLoginURL(r, nonce), http.StatusTemporaryRedirect)
@@ -74,7 +74,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 
-// Authenticate user after they have come back from google
+// Authenticate user after they have come back from github
 func handleCallback(w http.ResponseWriter, r *http.Request, qs url.Values) {
   // Check for CSRF cookie
   csrfCookie, err := r.Cookie(fw.CSRFCookieName)
@@ -111,9 +111,26 @@ func handleCallback(w http.ResponseWriter, r *http.Request, qs url.Values) {
     return
   }
 
+  // Get orgs
+  if fw.GithubOrg != "" {
+    orgs, err := fw.GetOrgs(token)
+    if err != nil {
+      log.Debugf("Error getting orgs: %s\n", err)
+      return
+    }
+    for _, org := range orgs {
+      if org.Name == fw.GithubOrg {
+        goto PASSED
+      }
+    }
+    log.Debugf("User organizations not matched: %s\n", fw.GithubOrg)
+    return
+    PASSED:
+  }
+
   // Generate cookie
-  http.SetCookie(w, fw.MakeCookie(r, user.Email))
-  log.Debugf("Generated auth cookie for %s\n", user.Email)
+  http.SetCookie(w, fw.MakeCookie(r, user.Name))
+  log.Debugf("Generated auth cookie for %s\n", user.Name)
 
   // Redirect
   http.Redirect(w, r, redirect, http.StatusTemporaryRedirect)
@@ -128,8 +145,8 @@ func main() {
   lifetime := flag.Int("lifetime", 43200, "Session length in seconds")
   secret := flag.String("secret", "", "*Secret used for signing (required)")
   authHost := flag.String("auth-host", "", "Central auth login")
-  clientId := flag.String("client-id", "", "*Google Client ID (required)")
-  clientSecret := flag.String("client-secret", "", "*Google Client Secret (required)")
+  clientId := flag.String("client-id", "", "*Github Client ID (required)")
+  clientSecret := flag.String("client-secret", "", "*Github Client Secret (required)")
   cookieName := flag.String("cookie-name", "_forward_auth", "Cookie Name")
   cSRFCookieName := flag.String("csrf-cookie-name", "_forward_auth_csrf", "CSRF Cookie Name")
   cookieDomainList := flag.String("cookie-domains", "", "Comma separated list of cookie domains") //todo
@@ -137,6 +154,7 @@ func main() {
   cookieSecure := flag.Bool("cookie-secure", true, "Use secure cookies")
   domainList := flag.String("domain", "", "Comma separated list of email domains to allow")
   emailWhitelist := flag.String("whitelist", "", "Comma separated list of emails to allow")
+  githubOrg := flag.String("github-org", "", "Restrict logins to members of this organisation")
   prompt := flag.String("prompt", "", "Space separated list of OpenID prompt options")
 
   flag.Parse()
@@ -191,21 +209,26 @@ func main() {
 
     ClientId: *clientId,
     ClientSecret: *clientSecret,
-    Scope: "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
+    Scope: "user:email read:org",
     LoginURL: &url.URL{
       Scheme: "https",
-      Host: "accounts.google.com",
-      Path: "/o/oauth2/auth",
+      Host: "github.com",
+      Path: "/login/oauth/authorize",
     },
     TokenURL: &url.URL{
       Scheme: "https",
-      Host: "www.googleapis.com",
-      Path: "/oauth2/v3/token",
+      Host: "github.com",
+      Path: "/login/oauth/access_token",
     },
     UserURL: &url.URL{
       Scheme: "https",
-      Host: "www.googleapis.com",
-      Path: "/oauth2/v2/userinfo",
+      Host: "api.github.com",
+      Path: "/user",
+    },
+    OrgsURL: &url.URL{
+      Scheme: "https",
+      Host: "api.github.com",
+      Path: "/user/orgs",
     },
 
     CookieName: *cookieName,
@@ -215,6 +238,7 @@ func main() {
 
     Domain: domain,
     Whitelist: whitelist,
+    GithubOrg: *githubOrg,
 
     Prompt: *prompt,
   }

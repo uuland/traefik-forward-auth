@@ -2,7 +2,9 @@
 package main
 
 import (
+  "bytes"
   "fmt"
+  "io/ioutil"
   "time"
   "errors"
   "strings"
@@ -29,6 +31,7 @@ type ForwardAuth struct {
   LoginURL *url.URL
   TokenURL *url.URL
   UserURL *url.URL
+  OrgsURL *url.URL
 
   AuthHost string
 
@@ -39,6 +42,7 @@ type ForwardAuth struct {
 
   Domain []string
   Whitelist []string
+  GithubOrg string
 
   Prompt string
 }
@@ -163,34 +167,62 @@ func (f *ForwardAuth) ExchangeCode(r *http.Request, code string) (string, error)
 // Get user with token
 
 type User struct {
-  Id string `json:"id"`
+  Id   string `json:"id"`
+  Name string `json:"login"`
   Email string `json:"email"`
-  Verified bool `json:"verified_email"`
-  Hd string `json:"hd"`
+}
+
+type Org struct {
+  Id string `json:"id"`
+  Name string `json:"login"`
 }
 
 func (f *ForwardAuth) GetUser(token string) (User, error) {
   var user User
 
-  client := &http.Client{}
-  req, err := http.NewRequest("GET", fw.UserURL.String(), nil)
-  if err != nil {
+  if resp, err := f.httpDo("GET", fw.UserURL.String(), token); err != nil {
     return user, err
+  } else {
+    err = json.NewDecoder(bytes.NewBuffer(resp)).Decode(&user)
+    return user, err
+  }
+}
+
+func (f *ForwardAuth) GetOrgs(token string) ([]Org, error) {
+  orgs := make([]Org, 0)
+
+  if resp, err := f.httpDo("GET", fw.OrgsURL.String(), token); err != nil {
+    return nil, err
+  } else {
+    err = json.NewDecoder(bytes.NewBuffer(resp)).Decode(&orgs)
+    return orgs, err
+  }
+}
+
+// Utility methods
+
+// HTTP request with token
+func (f *ForwardAuth) httpDo(method string, url string, token string) ([]byte, error) {
+  client := &http.Client{}
+  req, err := http.NewRequest(method, url, nil)
+  if err != nil {
+    return nil, err
   }
 
   req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
   res, err := client.Do(req)
   if err != nil {
-    return user, err
+    return nil, err
   }
 
   defer res.Body.Close()
-  err = json.NewDecoder(res.Body).Decode(&user)
 
-  return user, err
+  if body, err := ioutil.ReadAll(res.Body); err != nil {
+    return nil, err
+  } else {
+    return body, nil
+  }
 }
-
-// Utility methods
 
 // Get the redirect base
 func (f *ForwardAuth) redirectBase(r *http.Request) string {
