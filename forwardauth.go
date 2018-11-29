@@ -151,8 +151,15 @@ func (f *ForwardAuth) ExchangeCode(r *http.Request, code string) (string, error)
   form.Set("redirect_uri", f.redirectUri(r))
   form.Set("code", code)
 
+  client := &http.Client{}
+  req, err := http.NewRequest("POST", fw.TokenURL.String(), strings.NewReader(form.Encode()))
+  if err != nil {
+    return "", err
+  }
 
-  res, err := http.PostForm(fw.TokenURL.String(), form)
+  req.Header.Add("Accept", "application/json")
+
+  res, err := client.Do(req)
   if err != nil {
     return "", err
   }
