@@ -38,8 +38,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  log.Debugf("Handling request uri: %s", uri.String())
-
   // Handle callback
   if uri.Path == fw.Path {
     handleCallback(w, r, uri.Query())
