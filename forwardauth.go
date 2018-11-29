@@ -174,13 +174,13 @@ func (f *ForwardAuth) ExchangeCode(r *http.Request, code string) (string, error)
 // Get user with token
 
 type User struct {
-  Id   string `json:"id"`
+  Id   int `json:"id"`
   Name string `json:"login"`
   Email string `json:"email"`
 }
 
 type Org struct {
-  Id string `json:"id"`
+  Id int `json:"id"`
   Name string `json:"login"`
 }
 

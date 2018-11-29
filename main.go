@@ -18,8 +18,14 @@ var log = logging.MustGetLogger("traefik-forward-auth")
 
 // Primary handler
 func handler(w http.ResponseWriter, r *http.Request) {
+  // Get uri
+  req := r.Header.Get("X-Forwarded-Uri")
+  if req == "" {
+    req = r.RequestURI
+  }
+
   // Parse uri
-  uri, err := url.Parse(r.Header.Get("X-Forwarded-Uri"))
+  uri, err := url.Parse(req)
   if err != nil {
     log.Error("Error parsing url")
     http.Error(w, "Service unavailable", 503)
