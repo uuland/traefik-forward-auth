@@ -191,6 +191,9 @@ func (f *ForwardAuth) GetUser(token string) (User, error) {
     return user, err
   } else {
     err = json.NewDecoder(bytes.NewBuffer(resp)).Decode(&user)
+    if user.Id == 0 {
+      err = errors.New("invalid user")
+    }
     return user, err
   }
 }
@@ -216,7 +219,7 @@ func (f *ForwardAuth) httpDo(method string, url string, token string) ([]byte, e
     return nil, err
   }
 
-  log.Debugf("Perform http request %s:%s", method, url)
+  log.Debugf("Perform http request %s : %s ~ %s", method, url, token)
 
   req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
   res, err := client.Do(req)

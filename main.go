@@ -122,6 +122,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request, qs url.Values) {
   user, err := fw.GetUser(token)
   if err != nil {
     log.Debugf("Error getting user: %s\n", err)
+    http.Error(w, "Service unavailable", 503)
     return
   }
 
@@ -132,6 +133,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request, qs url.Values) {
     orgs, err := fw.GetOrgs(token)
     if err != nil {
       log.Debugf("Error getting orgs: %s\n", err)
+      http.Error(w, "Service unavailable", 503)
       return
     }
     for _, org := range orgs {
@@ -140,6 +142,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request, qs url.Values) {
       }
     }
     log.Debugf("User organizations not matched: %s\n", fw.GithubOrg)
+    http.Error(w, "Access Denied", 403)
     return
     PASSED:
   }
