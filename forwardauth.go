@@ -217,7 +217,7 @@ func (f *ForwardAuth) httpDo(method string, url string, token string) ([]byte, e
 		return nil, err
 	}
 
-	log.Debugf("Perform http request %s : %s ~ %s", method, url, token)
+	log.Debugf("Perform http request %s : %s", method, url)
 
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 	res, err := client.Do(req)
