@@ -216,6 +216,8 @@ func (f *ForwardAuth) httpDo(method string, url string, token string) ([]byte, e
     return nil, err
   }
 
+  log.Debugf("Perform http request %s:%s", method, url)
+
   req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
   res, err := client.Do(req)
   if err != nil {
@@ -227,6 +229,7 @@ func (f *ForwardAuth) httpDo(method string, url string, token string) ([]byte, e
   if body, err := ioutil.ReadAll(res.Body); err != nil {
     return nil, err
   } else {
+    log.Debugf("HTTP respond with body -> %s", string(body))
     return body, nil
   }
 }

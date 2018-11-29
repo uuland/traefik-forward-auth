@@ -33,7 +33,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
   }
 
   // Ignore for "favicon.ico"
-  if uri.Path == "favicon.ico" {
+  if uri.Path == "/favicon.ico" {
     w.WriteHeader(200)
     return
   }
@@ -124,6 +124,8 @@ func handleCallback(w http.ResponseWriter, r *http.Request, qs url.Values) {
     log.Debugf("Error getting user: %s\n", err)
     return
   }
+
+  log.Debugf("User has been authorized: %s<%s>", user.Name, user.Email)
 
   // Get orgs
   if fw.GithubOrg != "" {
