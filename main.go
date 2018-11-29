@@ -26,7 +26,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  log.Debugf("Handling request url: %s", uri.String())
+  // Ignore for "favicon.ico"
+  if uri.Path == "favicon.ico" {
+    w.WriteHeader(200)
+    return
+  }
+
+  log.Debugf("Handling request uri: %s", uri.String())
 
   // Handle callback
   if uri.Path == fw.Path {
