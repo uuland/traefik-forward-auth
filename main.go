@@ -37,6 +37,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ACME challenge check
+	if fw.SkipACME && strings.HasPrefix(uri.Path, "/.well-known/acme-challenge/") {
+		w.WriteHeader(200)
+		return
+	}
+
 	// Handle callback
 	if uri.Path == fw.Path {
 		handleCallback(w, r, uri.Query())
@@ -173,6 +179,7 @@ func main() {
 	emailWhitelist := flag.String("whitelist", "", "Comma separated list of emails to allow")
 	githubOrg := flag.String("github-org", "", "Restrict logins to members of this organisation")
 	prompt := flag.String("prompt", "", "Space separated list of OpenID prompt options")
+	skipACME := flag.Bool("skip-acme", true, "Skip ACME challenge request")
 
 	flag.Parse()
 
@@ -258,6 +265,8 @@ func main() {
 		GithubOrg: *githubOrg,
 
 		Prompt: *prompt,
+
+		SkipACME: *skipACME,
 	}
 
 	// Attach handler

@@ -44,6 +44,8 @@ type ForwardAuth struct {
 	GithubOrg string
 
 	Prompt string
+
+	SkipACME bool
 }
 
 // Request Validation
